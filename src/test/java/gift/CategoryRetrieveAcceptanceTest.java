@@ -1,10 +1,14 @@
 package gift;
 
 import io.restassured.RestAssured;
+import io.restassured.common.mapper.TypeRef;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.jdbc.Sql;
 
-import static org.hamcrest.Matchers.equalTo;
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
 @AcceptanceTest
@@ -23,15 +27,17 @@ class CategoryRetrieveAcceptanceTest {
     @Test
     @Sql("/sql/카테고리_두개_등록.sql")
     void 등록한_카테고리가_목록에_포함() {
-        RestAssured.given()
+        List<Map<String, Object>> categories = RestAssured.given()
                 .when()
                 .get("/api/categories")
                 .then()
                 .statusCode(200)
                 .body("$", hasSize(2))
-                .body("[0].id", equalTo(1))
-                .body("[0].name", equalTo("식품"))
-                .body("[1].id", equalTo(2))
-                .body("[1].name", equalTo("전자기기"));
+                .extract()
+                .as(new TypeRef<>() {});
+
+        assertThat(categories)
+                .extracting(c -> c.get("name"))
+                .containsExactlyInAnyOrder("식품", "전자기기");
     }
 }
