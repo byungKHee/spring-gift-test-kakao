@@ -125,5 +125,8 @@ class GiftAcceptanceTest {
                 .post("/api/gifts")
                 .then()
                 .statusCode(500);
+
+        var optionCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM option", Integer.class);
+        assertThat(optionCount).isEqualTo(0);
     }
 }
