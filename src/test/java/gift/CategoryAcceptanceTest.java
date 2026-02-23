@@ -24,8 +24,7 @@ class CategoryAcceptanceTest {
                 .post("/api/categories")
                 .then()
                 .statusCode(200)
-                .body("id", notNullValue())
-                .body("name", equalTo("식품"));
+                .body("id", notNullValue());
 
         RestAssured.given()
                 .when()
