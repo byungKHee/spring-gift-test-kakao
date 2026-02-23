@@ -6,32 +6,45 @@ import io.cucumber.java.ko.그러면;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.jdbc.datasource.init.ScriptUtils;
 
-import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
 
 public class ProductStepDefinitions {
 
     @Autowired
     private SharedContext sharedContext;
 
-    @Autowired
-    private DataSource dataSource;
-
-    @먼저("상품 2개가 등록되어 있다")
-    public void 상품_2개가_등록되어_있다() {
-        executeSql("sql/상품_두개_등록.sql");
+    @먼저("{string} 카테고리에 {string} 상품이 가격 {int}으로 등록되어 있다")
+    public void 상품이_등록되어_있다(String categoryName, String productName, int price) {
+        long categoryId = sharedContext.getId("카테고리_" + categoryName);
+        var response = RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                            "name": "%s",
+                            "price": %d,
+                            "imageUrl": "https://example.com/%s.jpg",
+                            "categoryId": %d
+                        }
+                        """.formatted(productName, price, productName, categoryId))
+                .when()
+                .post("/api/products");
+        long id = response.then().extract().jsonPath().getLong("id");
+        sharedContext.putId("상품_" + productName, id);
     }
 
-    @만일("카테고리 {long}에 {string} 상품을 가격 {int} 이미지 {string}로 등록한다")
-    public void 상품을_등록한다(long categoryId, String name, int price, String imageUrl) {
+    @먼저("{string} 카테고리에 {string} 상품이 등록되어 있다")
+    public void 상품이_등록되어_있다(String categoryName, String productName) {
+        상품이_등록되어_있다(categoryName, productName, 10000);
+    }
+
+    @만일("{string} 카테고리에 {string} 상품을 가격 {int} 이미지 {string}로 등록한다")
+    public void 상품을_등록한다(String categoryName, String productName, int price, String imageUrl) {
+        long categoryId = sharedContext.getId("카테고리_" + categoryName);
         var response = RestAssured.given()
                 .contentType(ContentType.JSON)
                 .body("""
@@ -41,7 +54,24 @@ public class ProductStepDefinitions {
                             "imageUrl": "%s",
                             "categoryId": %d
                         }
-                        """.formatted(name, price, imageUrl, categoryId))
+                        """.formatted(productName, price, imageUrl, categoryId))
+                .when()
+                .post("/api/products");
+        sharedContext.setLastResponse(response);
+    }
+
+    @만일("존재하지 않는 카테고리에 상품을 등록한다")
+    public void 존재하지_않는_카테고리에_상품을_등록한다() {
+        var response = RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                            "name": "아이폰 16",
+                            "price": 1500000,
+                            "imageUrl": "https://example.com/iphone.jpg",
+                            "categoryId": 999999
+                        }
+                        """)
                 .when()
                 .post("/api/products");
         sharedContext.setLastResponse(response);
@@ -53,16 +83,6 @@ public class ProductStepDefinitions {
                 .when()
                 .get("/api/products");
         sharedContext.setLastResponse(response);
-    }
-
-    @그러면("상품 목록을 조회하면 {int}개가 반환된다")
-    public void 상품_목록을_조회하면_N개가_반환된다(int count) {
-        RestAssured.given()
-                .when()
-                .get("/api/products")
-                .then()
-                .statusCode(200)
-                .body("$", hasSize(count));
     }
 
     @그러면("응답에 상품 이름 {string}이 포함되어 있다")
@@ -89,13 +109,5 @@ public class ProductStepDefinitions {
             assertThat(p.get("price")).isEqualTo(price);
             assertThat(((Map<?, ?>) p.get("category")).get("name")).isEqualTo(categoryName);
         });
-    }
-
-    private void executeSql(String resourcePath) {
-        try (var conn = dataSource.getConnection()) {
-            ScriptUtils.executeSqlScript(conn, new ClassPathResource(resourcePath));
-        } catch (Exception e) {
-            throw new RuntimeException("SQL 실행 실패: " + resourcePath, e);
-        }
     }
 }
