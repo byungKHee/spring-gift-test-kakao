@@ -21,7 +21,7 @@
 ```bash
 ./gradlew bootRun          # 애플리케이션 실행
 ./gradlew test             # JUnit 인수 테스트 (H2, Docker 불필요)
-./gradlew cucumberTest     # Cucumber 시나리오 테스트 (Docker PostgreSQL 자동 실행)
+./gradlew cucumberTest     # Cucumber 시나리오 테스트 (Docker로 App + PostgreSQL 자동 실행)
 ```
 
 ## 프로젝트 구조

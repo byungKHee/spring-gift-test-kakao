@@ -22,7 +22,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	runtimeOnly 'com.h2database:h2'
-	testRuntimeOnly 'org.postgresql:postgresql'
+	runtimeOnly 'org.postgresql:postgresql'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'io.rest-assured:rest-assured'
 	testImplementation 'io.cucumber:cucumber-java:7.20.1'
@@ -38,14 +38,21 @@ tasks.named('test') {
 	exclude '**/cucumber/**'
 }
 
+tasks.register('dockerBuild', Exec) {
+	commandLine 'docker', 'build', '-t', 'gift-app', '.'
+	description = 'Build Docker image for the application'
+	group = 'docker'
+}
+
 tasks.register('composeUp', Exec) {
+	dependsOn dockerBuild
 	commandLine 'docker', 'compose', 'up', '-d', '--wait'
-	description = 'Start PostgreSQL via Docker Compose'
+	description = 'Start application and PostgreSQL via Docker Compose'
 	group = 'docker'
 }
 
 tasks.register('composeDown', Exec) {
-	commandLine 'docker', 'compose', 'down'
+	commandLine 'docker', 'compose', 'down', '-v'
 	description = 'Stop PostgreSQL via Docker Compose'
 	group = 'docker'
 }
