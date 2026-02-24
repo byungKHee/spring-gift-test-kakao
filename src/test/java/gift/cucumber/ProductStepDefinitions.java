@@ -12,8 +12,11 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 
 public class ProductStepDefinitions {
+
+    private static final String DEFAULT_IMAGE_URL = "https://example.com/default.jpg";
 
     @Autowired
     private SharedContext sharedContext;
@@ -27,10 +30,10 @@ public class ProductStepDefinitions {
                         {
                             "name": "%s",
                             "price": %d,
-                            "imageUrl": "https://example.com/%s.jpg",
+                            "imageUrl": "%s",
                             "categoryId": %d
                         }
-                        """.formatted(productName, price, productName, categoryId))
+                        """.formatted(productName, price, DEFAULT_IMAGE_URL, categoryId))
                 .when()
                 .post("/api/products");
         long id = response.then().extract().jsonPath().getLong("id");
@@ -42,8 +45,8 @@ public class ProductStepDefinitions {
         상품이_등록되어_있다(categoryName, productName, 10000);
     }
 
-    @만일("{string} 카테고리에 {string} 상품을 가격 {int} 이미지 {string}로 등록한다")
-    public void 상품을_등록한다(String categoryName, String productName, int price, String imageUrl) {
+    @만일("{string} 카테고리에 {string} 상품을 가격 {int}으로 등록한다")
+    public void 상품을_등록한다(String categoryName, String productName, int price) {
         long categoryId = sharedContext.getId("카테고리_" + categoryName);
         var response = RestAssured.given()
                 .contentType(ContentType.JSON)
@@ -54,7 +57,7 @@ public class ProductStepDefinitions {
                             "imageUrl": "%s",
                             "categoryId": %d
                         }
-                        """.formatted(productName, price, imageUrl, categoryId))
+                        """.formatted(productName, price, DEFAULT_IMAGE_URL, categoryId))
                 .when()
                 .post("/api/products");
         sharedContext.setLastResponse(response);
@@ -68,10 +71,10 @@ public class ProductStepDefinitions {
                         {
                             "name": "아이폰 16",
                             "price": 1500000,
-                            "imageUrl": "https://example.com/iphone.jpg",
+                            "imageUrl": "%s",
                             "categoryId": 999999
                         }
-                        """)
+                        """.formatted(DEFAULT_IMAGE_URL))
                 .when()
                 .post("/api/products");
         sharedContext.setLastResponse(response);
@@ -85,18 +88,31 @@ public class ProductStepDefinitions {
         sharedContext.setLastResponse(response);
     }
 
-    @그러면("응답에 상품 이름 {string}이 포함되어 있다")
-    public void 응답에_상품_이름이_포함(String name) {
+    @그러면("상품이 정상적으로 등록된다")
+    public void 상품이_정상적으로_등록된다() {
+        sharedContext.getLastResponse().then()
+                .statusCode(200)
+                .body("id", notNullValue());
+    }
+
+    @그러면("상품 등록에 실패한다")
+    public void 상품_등록에_실패한다() {
+        int statusCode = sharedContext.getLastResponse().then().extract().statusCode();
+        assertThat(statusCode).isGreaterThanOrEqualTo(400);
+    }
+
+    @그러면("등록된 상품의 이름은 {string}이다")
+    public void 등록된_상품의_이름은(String name) {
         sharedContext.getLastResponse().then().body("name", equalTo(name));
     }
 
-    @그러면("응답에 상품 가격 {int}이 포함되어 있다")
-    public void 응답에_상품_가격이_포함(int price) {
+    @그러면("등록된 상품의 가격은 {int}이다")
+    public void 등록된_상품의_가격은(int price) {
         sharedContext.getLastResponse().then().body("price", equalTo(price));
     }
 
-    @그러면("응답에 카테고리 이름 {string}이 포함되어 있다")
-    public void 응답에_카테고리_이름이_포함(String categoryName) {
+    @그러면("등록된 상품의 카테고리는 {string}이다")
+    public void 등록된_상품의_카테고리는(String categoryName) {
         sharedContext.getLastResponse().then().body("category.name", equalTo(categoryName));
     }
 

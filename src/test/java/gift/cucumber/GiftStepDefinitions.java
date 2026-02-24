@@ -43,11 +43,11 @@ public class GiftStepDefinitions {
         sharedContext.putId("옵션_" + optionName, option.getId());
     }
 
-    @만일("{string}이 {string} 옵션을 {int}개 선물한다")
-    public void 선물한다(String senderName, String optionName, int quantity) {
+    @만일("{string}이 {string}에게 {string} 옵션을 {int}개 선물한다")
+    public void 선물한다(String senderName, String receiverName, String optionName, int quantity) {
         long senderId = sharedContext.getId("회원_" + senderName);
         long optionId = sharedContext.getId("옵션_" + optionName);
-        long receiverId = sharedContext.getId("회원_받는사람");
+        long receiverId = sharedContext.getId("회원_" + receiverName);
         var response = RestAssured.given()
                 .contentType(ContentType.JSON)
                 .header("Member-Id", senderId)
@@ -82,6 +82,17 @@ public class GiftStepDefinitions {
                 .when()
                 .post("/api/gifts");
         sharedContext.setLastResponse(response);
+    }
+
+    @그러면("선물 보내기가 성공한다")
+    public void 선물_보내기가_성공한다() {
+        sharedContext.getLastResponse().then().statusCode(200);
+    }
+
+    @그러면("선물 보내기가 실패한다")
+    public void 선물_보내기가_실패한다() {
+        int statusCode = sharedContext.getLastResponse().then().extract().statusCode();
+        assertThat(statusCode).isGreaterThanOrEqualTo(400);
     }
 
     @그러면("{string} 옵션의 재고는 {int}개이다")
